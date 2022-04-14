@@ -1,0 +1,10 @@
+.cache
+.ipython
+.local
+.vscode-server
+dataset
+input
+.gitconfig
+.profile
+.wget-hsts
+code/pths
