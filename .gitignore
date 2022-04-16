@@ -1,9 +1,11 @@
 .cache
+.config
 .ipython
 .local
 .vscode-server
 dataset
 input
+.bash_history
 .gitconfig
 .profile
 .wget-hsts

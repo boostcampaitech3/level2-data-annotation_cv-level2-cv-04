@@ -2,7 +2,7 @@ import argparse
 import json
 import os
 from itertools import chain
-from PIL import ImageOps, Image, ImageDraw
+from PIL import ImageOps, Image, ImageDraw, ImageFont
 from typing import Sequence, Tuple
 
 import plotly.express as px
@@ -40,6 +40,38 @@ parser.add_argument(
 args = parser.parse_args()
 
 
+# -- load annotations
+with open(os.path.join(args.root_dir, 'ufo', args.annotation_file_name)+'.json', 'r') as f:
+    anno = json.load(f)
+
+fnames = tuple(anno['images'].keys())
+num_files = len(fnames)
+
+img_idx = -1
+
+app = Dash(__name__)
+app.layout = html.Div(
+    [
+        html.H3('hi'),
+        html.Button('prev', id='btn-prev', n_clicks=0),
+        html.Button('next', id='btn-next', n_clicks=0),
+        dcc.Input(
+            id='idx_input',
+            type='number', 
+            placeholder='input image index', 
+            min=0, 
+            max=num_files-1,
+        ),
+        html.Button('go', id='btn-go', n_clicks=0),
+        html.Div([
+            dcc.Graph(id='graph'),
+            dcc.Graph(id='graph_2'),
+            dcc.Graph(id='graph_3'),
+        ],style={ 'textAlign': 'center', 'color': '#888' ,'display':'grid', 'grid-template-columns':'1fr 1fr 1fr'})
+    ]
+)
+
+
 # --
 point = Tuple[int, int]
 
@@ -61,58 +93,49 @@ def read_img(path: str, target_h: int = 1000) -> Image:
     # draw polygon
     for key, val in words.items():
         poly = val['points']
+        tag_lan = val['language']
+        tag_lan = ','.join(tag_lan)
+        tag_tran = val["transcription"]
+        tags = tag_lan+':'+tag_tran
         poly_resize = [[v * ratio for v in pt] for pt in poly]
         illegibility = val['illegibility']
-        draw_polygon(img, poly_resize, illegibility)
+        draw_polygon(img, poly_resize, illegibility,tags)
 
     return img
 
 
-def draw_polygon(img: Image, pts: Sequence[point], illegibility: bool):
+def draw_polygon(img: Image, pts: Sequence[point], illegibility: bool, tags:str):
     """이미지에 폴리곤을 그린다. illegibility의 여부에 따라 라인 색상이 다르다."""
-    pts = list(chain(*pts)) + pts[0]  # flatten 후 첫번째 점을 마지막에 붙인다.
     img_draw = ImageDraw.Draw(img)
+
+    font = ImageFont.truetype("NanumSquareRoundB.ttf",size=20)
+    img_draw.rectangle([(pts[0][0],pts[0][1]-20),(pts[0][0]+200,pts[0][1]-20+20)], fill='yellow')
+    img_draw.text((pts[0][0],pts[0][1]-20),tags,(0,0,0),font,align='left')
+
     # 폴리곤 선 너비 지정이 안되어 line으로 표시
+    pts = list(chain(*pts)) + pts[0]  # flatten 후 첫번째 점을 마지막에 붙인다.
     img_draw.line(pts, width=3, fill=(0, 255, 255) if not illegibility else (255, 0, 255))
 
 
-# -- load annotations
-with open(os.path.join(args.root_dir, 'ufo', args.annotation_file_name)+'.json', 'r') as f:
-    anno = json.load(f)
-
-fnames = tuple(anno['images'].keys())
-num_files = len(fnames)
-
-img_idx = -1
-
-app = Dash(__name__)
-app.layout = html.Div(
-    [
-        html.H3(id='img_name'),
-        html.Button('prev', id='btn-prev', n_clicks=0),
-        html.Button('next', id='btn-next', n_clicks=0),
-        dcc.Input(
-            id='idx_input',
-            type='number', 
-            placeholder='input image index', 
-            min=0, 
-            max=num_files-1,
-        ),
-        html.Button('go', id='btn-go', n_clicks=0),
-        dcc.Graph(id='graph'),
-    ]
-)
+def get_fig(img_idx):
+    img_path = os.path.join(args.root_dir, 'images', fnames[img_idx])
+    img = read_img(img_path, args.image_h)
+    fig = px.imshow(img)
+    fig.update_layout(height=args.image_h)
+    return fig
 
 @app.callback(
     Output('graph', 'figure'),
+    Output('graph_2', 'figure'),
+    Output('graph_3', 'figure'),
     Output('img_name', 'children'),
     Output('idx_input', 'value'),
-    Input('btn-next', 'n_clicks'),
     Input('btn-prev', 'n_clicks'),
+    Input('btn-next', 'n_clicks'),
     Input('btn-go', 'n_clicks'),
     State('idx_input', 'value')
 )
-def update_img(btn_n, btn_p, btn_g, go_idx: int):
+def update_img(btn_p, btn_n, btn_g, go_idx: int):
     """버튼 이벤트에 반응, 이미지 업데이트"""
     global img_idx
     change_id = [p['prop_id'] for p in callback_context.triggered][0]
@@ -125,12 +148,11 @@ def update_img(btn_n, btn_p, btn_g, go_idx: int):
     else:  # 초기화
         img_idx = 0
 
-    img_path = os.path.join(args.root_dir, 'images', fnames[img_idx])
-    img = read_img(img_path, args.image_h)
-    fig = px.imshow(img)
-    fig.update_layout(height=args.image_h)
+    fig = get_fig(img_idx)
+    fig_2 = get_fig(img_idx+1)
+    fig_3 = get_fig(img_idx+2)
 
-    return fig, f'[{img_idx+1}/{num_files}] ' + os.path.basename(img_path), img_idx
+    return fig, fig_2, fig_3, '', img_idx
 
 
 if __name__ == '__main__':
