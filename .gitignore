@@ -10,3 +10,6 @@ input
 .profile
 .wget-hsts
 code/pths
+code/__pycache__
+code/trained_models
+code/nohup.out
