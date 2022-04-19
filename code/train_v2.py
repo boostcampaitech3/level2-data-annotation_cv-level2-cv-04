@@ -66,7 +66,7 @@ def do_training(data_dir, json_name, model_dir, device, image_size, input_size, 
         'image_size':image_size, 'input_size':input_size, 'num_workers':num_workers, 'batch_size':batch_size,
         'learning_rate':learning_rate, 'epochs':max_epoch
     }
-    wandb.init(project='data_driven', entity='cv04', config=config, name = '1_2_test')
+    wandb.init(project='data_driven', entity='cv04', config=config, name = wandb_name)
     wandb.define_metric("epoch")
     wandb.define_metric("learning_rate", step_metric="epoch")
     wandb.define_metric("val/*", step_metric="epoch")
@@ -95,13 +95,12 @@ def do_training(data_dir, json_name, model_dir, device, image_size, input_size, 
                 }
                 pbar.set_postfix(val_dict)
 
-
                 wandb.log({ "train/Mean_loss": loss.item(), 
                         "train/Cls_loss": val_dict['Cls loss'],
                         "train/Angle_loss": val_dict['Angle loss'],
                         "train/IoU_loss": val_dict['IoU loss'],
                         "learning_rate": optimizer.param_groups[0]['lr'],
-                        "epoch":epoch+1}, step=epoch*num_batches)
+                        "epoch":epoch+1}, step=epoch)
 
         scheduler.step()
 
@@ -116,16 +115,10 @@ def do_training(data_dir, json_name, model_dir, device, image_size, input_size, 
             torch.save(model.state_dict(), ckpt_fpath)
 
 
-            
-
-
 def main(args):
     do_training(**args.__dict__)
 
 
 if __name__ == '__main__':
     args = parse_args()
-
-    wandb.init(project='data_driven',entity='cv04',name=args.wandb_name)
-
     main(args)
