@@ -199,14 +199,14 @@ def crop_img(img, vertices, labels, length):
         region      : cropped image region
         new_vertices: new vertices in cropped region
     '''
-    h, w = img.height, img.width
+    h, w = img.shape[:2]
     # confirm the shortest side of image >= length
     if h >= w and w < length:
         img = img.resize((length, int(h * length / w)), Image.BILINEAR)
     elif h < w and h < length:
         img = img.resize((int(w * length / h), length), Image.BILINEAR)
-    ratio_w = img.width / w
-    ratio_h = img.height / h
+    ratio_w = img.shape[1] / w
+    ratio_h = img.shape[0] / h
     assert(ratio_w >= 1 and ratio_h >= 1)
 
     new_vertices = np.zeros(vertices.shape)
@@ -215,8 +215,8 @@ def crop_img(img, vertices, labels, length):
         new_vertices[:,[1,3,5,7]] = vertices[:,[1,3,5,7]] * ratio_h
 
     # find random position
-    remain_h = img.height - length
-    remain_w = img.width - length
+    remain_h = img.shape[0] - length
+    remain_w = img.shape[1] - length
     flag = True
     cnt = 0
     while flag and cnt < 1000:
@@ -282,9 +282,9 @@ def adjust_height(img, vertices, ratio=0.2):
         new_vertices: adjusted vertices
     '''
     ratio_h = 1 + ratio * (np.random.rand() * 2 - 1)
-    old_h = img.height
+    old_h, old_w = img.shape[:2]
     new_h = int(np.around(old_h * ratio_h))
-    img = img.resize((img.width, new_h), Image.BILINEAR)
+    img = cv2.resize(img,(old_w, new_h),interpolation=cv2.INTER_AREA)
 
     new_vertices = vertices.copy()
     if vertices.size > 0:
@@ -302,10 +302,12 @@ def rotate_img(img, vertices, angle_range=10):
         img         : rotated PIL Image
         new_vertices: rotated vertices
     '''
-    center_x = (img.width - 1) / 2
-    center_y = (img.height - 1) / 2
+    h,w = img.shape[:2]
+    center_x = (w - 1) / 2
+    center_y = (h - 1) / 2
     angle = angle_range * (np.random.rand() * 2 - 1)
-    img = img.rotate(angle, Image.BILINEAR)
+    met = cv2.getRotationMatrix2D((center_x,center_y),angle,1)
+    img = cv2.warpAffine(img,met,(0,0))
     new_vertices = np.zeros(vertices.shape)
     for i, vertice in enumerate(vertices):
         new_vertices[i,:] = rotate_vertices(vertice, -angle / 180 * math.pi, np.array([[center_x],[center_y]]))
@@ -451,7 +453,6 @@ class SceneTextDataset(Dataset):
         return len(self.image_fnames)
 
     def __getitem__(self, idx):
-        print(idx)
         image = self.images[idx]
         vertices = self.vertices[idx]
         labels = self.labels[idx]
