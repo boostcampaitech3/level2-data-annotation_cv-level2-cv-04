@@ -2,7 +2,7 @@ import numpy as np
 import numpy.random as npr
 from albumentations.pytorch import ToTensorV2
 from shapely.geometry import Polygon
-from shapely.validation import make_valid
+# from shapely.validation import make_valid
 import albumentations as A
 import cv2
 import random
@@ -233,7 +233,8 @@ class GeoTransformation:
 				
 				for bbox in bboxes:
 					bbox_poly = Polygon(bbox)
-					bbox_poly = make_valid(bbox_poly) ## tlqkf
+					# bbox_poly = make_valid(bbox_poly)
+					bbox_poly = bbox_poly.buffer(0)
 					if bbox_poly.area <= 0:
 						continue
 					
