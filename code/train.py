@@ -33,7 +33,7 @@ def parse_args():
     parser.add_argument('--batch_size', type=int, default=12)
     parser.add_argument('--learning_rate', type=float, default=1e-3)
     parser.add_argument('--max_epoch', type=int, default=200)
-    parser.add_argument('--save_interval', type=int, default=5)
+    parser.add_argument('--save_interval', type=int, default=10)
 
     args = parser.parse_args()
 
@@ -82,13 +82,13 @@ def do_training(data_dir, model_dir, device, image_size, input_size, num_workers
 
         print('Mean loss: {:.4f} | Elapsed time: {}'.format(
             epoch_loss / num_batches, timedelta(seconds=time.time() - epoch_start)))
-
-        if (epoch + 1) % save_interval == 0:
-            if not osp.exists(model_dir):
-                os.makedirs(model_dir)
-
-            ckpt_fpath = osp.join(model_dir, 'latest.pth')
-            torch.save(model.state_dict(), ckpt_fpath)
+        if epoch > 40:
+            if (epoch + 1) % save_interval == 0:
+                if not osp.exists(model_dir):
+                    os.makedirs(model_dir)
+                model_name=str(epoch)+'ep_model.pth'
+                ckpt_fpath = osp.join(model_dir, model_name)
+                torch.save(model.state_dict(), ckpt_fpath)
 
 
 def main(args):
