@@ -259,12 +259,14 @@ def rotate_all_pixels(rotate_mat, anchor_x, anchor_y, length):
 
 
 def resize_img(img, vertices, size):
-    h, w = img.height, img.width
+    h, w = img.shape[:2]
     ratio = size / max(h, w)
     if w > h:
-        img = img.resize((size, int(h * ratio)), Image.BILINEAR)
+        # img = img.resize((size, int(h * ratio)), Image.BILINEAR)
+        img = cv2.resize(img,(size, int(h * ratio)),interpolation=cv2.INTER_AREA)
     else:
-        img = img.resize((int(w * ratio), size), Image.BILINEAR)
+        # img = img.resize((int(w * ratio), size), Image.BILINEAR)
+        img = cv2.resize(img,(int(w * ratio), size),interpolation=cv2.INTER_AREA)
     new_vertices = vertices * ratio
     return img, new_vertices
 
@@ -449,6 +451,7 @@ class SceneTextDataset(Dataset):
         return len(self.image_fnames)
 
     def __getitem__(self, idx):
+        print(idx)
         image = self.images[idx]
         vertices = self.vertices[idx]
         labels = self.labels[idx]
