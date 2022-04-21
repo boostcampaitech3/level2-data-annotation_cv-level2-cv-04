@@ -1,10 +1,16 @@
 .cache
+.config
 .ipython
 .local
 .vscode-server
-dataset
 input
+.bash_history
 .gitconfig
+.netrc
 .profile
 .wget-hsts
 code/pths
+code/__pycache__
+code/trained_models
+code/nohup.out
+code/wandb
